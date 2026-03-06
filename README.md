@@ -15,6 +15,8 @@ Colorectal cancer (CRC) is the second leading cause of cancer-related death worl
 
 Encoder-decoder with ResNet50 encoder, four levels of feature maps, DCP (dilated convolution pooling) blocks, and four decoder blocks with channel and spatial attention. Two model variants: **Kvasir-SEG** and **BKAI-IGH**.
 
+![Architecture](images/architecture.jpg)
+
 ### Implementation
 
 - **Framework:** PyTorch (1.9.0+), implemented with a single GeForce RTX 3090 GPU (24 GB).
@@ -25,6 +27,18 @@ Encoder-decoder with ResNet50 encoder, four levels of feature maps, DCP (dilated
 
 - **Metrics:** Dice **0.90**, mIoU **0.83**, ~33.68 FPS on GPU.
 - Qualitative results and heatmaps show explanation for polyp location, improving trustworthiness of the method.
+
+**Quantitative results (same dataset):**
+
+![Result 1](images/result-1.png)
+
+**Quantitative results (different dataset):**
+
+![Result 2](images/result-2.png)
+
+**Qualitative results:**
+
+![Qualitative](images/qualitative.jpg)
 
 ### Repo structure
 
