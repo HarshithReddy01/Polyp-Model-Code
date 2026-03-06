@@ -58,3 +58,6 @@ Updated soon.
 **Harshith Reddy Nalla**  
 - Email: harshithreddynalla01@gmail.com  
 - Portfolio: [harshithreddy01.github.io/My-Web](https://harshithreddy01.github.io/My-Web/)
+
+**Debesh Jha**  
+- Portfolio: [debeshjha.com](https://debeshjha.com)
