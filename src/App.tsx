@@ -1,13 +1,30 @@
 import { useRef, useState, useCallback, useEffect, DragEvent, ChangeEvent } from "react";
 
+const API_BASE = "https://harshithreddy01-polyp-detection.hf.space";
+
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 const MAX_MB = 10;
+
+type ModelName = "Kvasir-Seg" | "BKAI-IGH";
 
 type State =
   | { stage: "idle" }
   | { stage: "loading" }
   | { stage: "error"; message: string }
-  | { stage: "result"; originalURL: string; maskURL: string };
+  | { stage: "result"; originalURL: string; maskURL: string; model: ModelName };
+
+const MODEL_INFO: Record<ModelName, { title: string; description: string }> = {
+  "Kvasir-Seg": {
+    title: "Kvasir-SEG",
+    description:
+      "Trained on 1,000 annotated colonoscopy images covering a wide variety of polyp shapes, sizes, and textures. Best choice for general-purpose polyp detection in standard colonoscopy footage.",
+  },
+  "BKAI-IGH": {
+    title: "BKAI-IGH",
+    description:
+      "Trained on a clinically diverse dataset that distinguishes between neoplastic and non-neoplastic polyp categories. Recommended when finer discrimination between polyp types is needed.",
+  },
+};
 
 function validate(file: File): string | null {
   if (!ALLOWED_TYPES.includes(file.type))
@@ -43,21 +60,16 @@ function Overlay({ originalURL, maskURL }: { originalURL: string; maskURL: strin
     const tryDraw = () => {
       loaded++;
       if (loaded < 2) return;
-
       canvas.width = 256;
       canvas.height = 256;
-
       ctx.drawImage(orig, 0, 0, 256, 256);
-
       const off = document.createElement("canvas");
       off.width = 256;
       off.height = 256;
       const octx = off.getContext("2d")!;
       octx.drawImage(mask, 0, 0, 256, 256);
-
       const maskPx = octx.getImageData(0, 0, 256, 256);
       const base = ctx.getImageData(0, 0, 256, 256);
-
       for (let i = 0; i < maskPx.data.length; i += 4) {
         if (maskPx.data[i] > 128) {
           base.data[i]     = Math.min(255, base.data[i] + 90);
@@ -85,9 +97,10 @@ function Overlay({ originalURL, maskURL }: { originalURL: string; maskURL: strin
 export default function App() {
   const [state, setState] = useState<State>({ stage: "idle" });
   const [dragOver, setDragOver] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ModelName>("Kvasir-Seg");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const run = useCallback(async (file: File) => {
+  const run = useCallback(async (file: File, model: ModelName) => {
     const err = validate(file);
     if (err) { setState({ stage: "error", message: err }); return; }
 
@@ -98,14 +111,17 @@ export default function App() {
     form.append("file", file);
 
     try {
-      const resp = await fetch("/predict", { method: "POST", body: form });
+      const resp = await fetch(`${API_BASE}/predict?model=${encodeURIComponent(model)}`, {
+        method: "POST",
+        body: form,
+      });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({})) as { detail?: string };
         throw new Error(body.detail ?? `Server error (${resp.status})`);
       }
       const data = await resp.json() as { mask: string };
       const maskURL = "data:image/png;base64," + data.mask;
-      setState({ stage: "result", originalURL, maskURL });
+      setState({ stage: "result", originalURL, maskURL, model });
     } catch (e) {
       setState({ stage: "error", message: (e as Error).message });
     }
@@ -113,14 +129,14 @@ export default function App() {
 
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) run(file);
+    if (file) run(file, selectedModel);
   };
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file) run(file);
+    if (file) run(file, selectedModel);
   };
 
   const reset = () => {
@@ -131,7 +147,6 @@ export default function App() {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
 
-      {/* Header */}
       <header style={{
         background: "#fff",
         borderBottom: "1px solid var(--border)",
@@ -166,10 +181,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main */}
       <main style={{ flex: 1, maxWidth: 960, width: "100%", margin: "0 auto", padding: "40px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
 
-        {/* Notice */}
         <div style={{
           background: "var(--accent-light)",
           border: "1px solid #bfdbfe",
@@ -179,9 +192,7 @@ export default function App() {
           color: "#1e40af",
           lineHeight: 1.65,
         }}>
-          <strong style={{ display: "block", marginBottom: 6, fontSize: "0.9rem" }}>
-            What images to upload
-          </strong>
+          <strong style={{ display: "block", marginBottom: 6, fontSize: "0.9rem" }}>What images to upload</strong>
           This model is trained on <strong>colonoscopy and endoscopy images</strong> for detecting colorectal polyps.
           Upload only images captured by a colonoscope showing the inner colon wall.
           <ul style={{ paddingLeft: 18, marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -192,7 +203,52 @@ export default function App() {
           </ul>
         </div>
 
-        {/* Upload zone — hidden when result is shown */}
+        <div>
+          <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: 12 }}>Select Model</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {(Object.keys(MODEL_INFO) as ModelName[]).map((key) => {
+              const active = selectedModel === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedModel(key)}
+                  style={{
+                    background: active ? "var(--accent-light)" : "#fff",
+                    border: `2px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                    borderRadius: "var(--radius)",
+                    padding: "14px 16px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "border-color 0.15s, background 0.15s",
+                  }}
+                >
+                  <div style={{
+                    fontWeight: 700,
+                    fontSize: "0.9rem",
+                    color: active ? "var(--accent)" : "var(--text)",
+                    marginBottom: 6,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}>
+                    <span style={{
+                      width: 14, height: 14, borderRadius: "50%",
+                      border: `2px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                      background: active ? "var(--accent)" : "transparent",
+                      display: "inline-block",
+                      flexShrink: 0,
+                    }} />
+                    {MODEL_INFO[key].title}
+                  </div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--muted)", lineHeight: 1.55 }}>
+                    {MODEL_INFO[key].description}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {state.stage !== "result" && (
           <div
             onClick={() => inputRef.current?.click()}
@@ -244,7 +300,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Error */}
         {state.stage === "error" && (
           <div style={{
             background: "var(--red-light)",
@@ -259,7 +314,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Loader */}
         {state.stage === "loading" && (
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -275,15 +329,19 @@ export default function App() {
               borderRadius: "50%",
               animation: "spin 0.7s linear infinite",
             }} />
-            Running polyp segmentation…
+            Running segmentation with {MODEL_INFO[selectedModel].title}…
           </div>
         )}
 
-        {/* Results */}
         {state.stage === "result" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 700, fontSize: "1.05rem" }}>Segmentation Results</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "1.05rem" }}>Segmentation Results</div>
+                <div style={{ fontSize: "0.78rem", color: "var(--muted)", marginTop: 2 }}>
+                  Model: {MODEL_INFO[state.model].title}
+                </div>
+              </div>
               <button
                 onClick={reset}
                 style={{
