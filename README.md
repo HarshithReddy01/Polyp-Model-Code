@@ -1,6 +1,6 @@
 # Polyp Detection
 
-**Live app:** [Frontend](https://harshithreddy01.github.io/Polyp-Frontend/)  
+**Live app:** [Frontend](https://harshithreddy01.github.io/Polyp-Model-Code/)  
 **API:** [Hugging Face Space](https://huggingface.co/spaces/HarshithReddy01/Polyp_Detection)
 
 ---
