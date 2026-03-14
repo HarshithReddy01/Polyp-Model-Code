@@ -1,117 +1,47 @@
-# PolypVision AI: Real-Time Deep Dilated Segmentation for Colonoscopy
+# DilatedSegNet: A Deep Dilated Segmentation Network for Polyp Segmentation
 
-**Live Demo:** https://harshithreddy01.github.io/Polyp-Model-Code/
-**API:** https://huggingface.co/spaces/HarshithReddy01/Polyp_Detection
+## 1. Abstract
+<div align="justify">
+Colorectal cancer (CRC) is the second leading cause of cancer-related death worldwide. Excision of polyps during colonoscopy helps reduce mortality and morbidity for CRC. Powered by deep learning, computer-aided diagnosis (CAD) systems can detect regions in the colon overlooked by physicians during colonoscopy. Lacking high accuracy and real-time speed are the essential obstacles to be overcome for successful clinical integration of such systems. While literature is focused on improving accuracy, the speed parameter is often ignored. Toward this critical need, we intend to develop a novel real-time deep learning-based architecture, DilatedSegNet, to perform polyp segmentation on the fly. DilatedSegNet is an encoder-decoder network that uses pre-trained ResNet50 as the encoder from which we extract four levels of feature maps. Each of these feature maps is passed through a dilated convolution pooling (DCP) block. The outputs from the DCP blocks are concatenated and passed through a series of four decoder blocks that predicts the segmentation mask. The proposed method achieves a real-time operation speed of 33.68 frames per second with an average dice coefficient of 0.90 and mIoU of 0.83. Additionally, we also provide heatmap along with the qualitative results that shows the explanation for the polyp location, which increases the trustworthiness of the method. The results on the publicly available Kvasir-SEG and BKAI-IGH datasets suggest that DilatedSegNet can give real-time feedback while retaining a high dice coefficient, indicating high potential for using such models in real clinical settings in the near future.
+</div>
 
-**Technical Lead:** [Debesh Jha](https://debeshjha.com)
-**AI/ML Engineer:** [Harshith Reddy Nalla](https://harshithreddy01.github.io/My-Web/)
+## 2. Architecture
+<img src="images/architecture.jpg">
 
----
+## 3. Implementation
+The proposed architecture is implemented using the PyTorch framework (1.9.0+cu111) with a single GeForce RTX 3090 GPU of 24 GB memory.
 
-## Overview
+### 3.1 Dataset
+We have used the following datasets:
+- [Kvasir-SEG](https://datasets.simula.no/downloads/kvasir-seg.zip)
+- [BKAI](https://www.kaggle.com/competitions/bkai-igh-neopolyp/data)
 
-PolypVision AI is a deep learning system for automated polyp segmentation in colonoscopy footage. It uses a DilatedSegNet architecture built on a ResNet50 encoder with multi-scale Dilated Convolution Pooling (DCP) blocks to produce pixel-accurate segmentation masks in real time at 33.68 FPS on an NVIDIA RTX 3090. Colorectal cancer is the second leading cause of cancer-related death worldwide — excision of polyps during colonoscopy reduces mortality, and this system enables real-time computer-aided detection to support that process.
+BKAI dataset follows an 80:10:10 split for training, validation and testing, while the Kvasir-SEG follows an official split of 880/120.
 
-## What It Does
+### 3.2 Weight file
+- [Kvasir-SEG](https://drive.google.com/file/d/1diYckKDMqDWSDD6O5Jm6InCxWEkU0GJC/view?usp=sharing)
+- [BKAI-IGH](https://drive.google.com/file/d/1ojGaQThD56mRhGQaVoJVpAw0oVwSzX8N/view?usp=sharing)
 
-Given a colonoscopy frame, the model outputs a binary segmentation mask highlighting polyp regions. The frontend displays three views: the original frame, the binary mask, and a red-highlighted overlay for spatial reference. The backend is a FastAPI service deployed on Hugging Face Spaces, accepting a JPEG or PNG image and returning a base64-encoded PNG mask via a single POST request.
+## 4. Results
 
-## Key Features
+### 4.1 Quantative Results: Same Dataset
+<img src="images/result-1.png">
 
-- ResNet50 encoder with ImageNet-pretrained weights
-- DCP (Dilated Convolution Pooling) blocks at dilation rates 1, 3, 6, and 9 in parallel
-- Channel and spatial attention (CBAM-style) in every decoder block
-- 33.68 FPS inference on NVIDIA RTX 3090 — no TensorRT optimization needed
-- Dual-dataset support: Kvasir-SEG and BKAI-IGH with separate checkpoints
-- REST API via FastAPI, deployed on Hugging Face Spaces
-- React + TypeScript frontend with drag-and-drop upload and canvas overlay
+### 4.2 Quantative Results: Different Dataset
+<img src="images/result-2.png">
 
----
+### 4.3 Qualitative Results
+<img src="images/qualitative.jpg">
 
-## Model Performance
+## 5. Citation
+Updated soon.
 
-| Metric     | Kvasir-SEG | BKAI-IGH  |
-|------------|------------|-----------|
-| Dice Score | 0.90       | 0.88      |
-| mIoU       | 0.83       | 0.81      |
-| Inference  | 33.68 FPS  | 33.68 FPS |
+## 6. License
+The source code is free for research and education use only. Any comercial use should receive a formal permission from the first author.
 
-### Technical Highlights
-
-- Implemented and benchmarked on NVIDIA RTX 3090 (24 GB VRAM)
-- DCP blocks fuse four parallel dilated convolution outputs with a 1x1 conv into a single feature map
-- Each decoder block upsamples 2x, concatenates encoder skip connections, then applies CBAM attention
-- Input resolution fixed at 256x256; DiceBCE loss, Adam optimizer, lr 1e-4, early stopping patience 50
-- Kvasir-SEG split: 880 train / 120 test; BKAI-IGH split: 80/10/10 train/val/test
-
----
-
-## Models
-
-**Kvasir-SEG**
-General-purpose model trained on 1,000 annotated colonoscopy images covering a wide variety of polyp shapes, sizes, and textures. Use this as your default for standard colonoscopy footage.
-
-**BKAI-IGH**
-Clinically focused model trained on a dataset distinguishing neoplastic and non-neoplastic polyp categories. Recommended when finer discrimination between polyp types is needed.
-
-Weight files for local use:
-- [Kvasir-SEG weights](https://drive.google.com/file/d/1diYckKDMqDWSDD6O5Jm6InCxWEkU0GJC/view?usp=sharing)
-- [BKAI-IGH weights](https://drive.google.com/file/d/1ojGaQThD56mRhGQaVoJVpAw0oVwSzX8N/view?usp=sharing)
-
----
-
-## Quick Start
-
-1. **Upload Image** — Drop or select a colonoscopy JPEG / PNG frame
-2. **Select Model** — Choose Kvasir-SEG for general use or BKAI-IGH for clinical differentiation
-3. **Run Inference** — DilatedSegNet processes the image via the Hugging Face API
-4. **View Overlay** — Inspect the original frame, binary mask, and red-highlighted overlay
-
----
-
-## API Usage
-
-```bash
-curl -X POST "https://harshithreddy01-polyp-detection.hf.space/predict?model=Kvasir-Seg" \
-  -F "file=@colonoscopy_image.jpg"
-```
-
-Response:
-```json
-{
-  "mask": "<base64-encoded PNG>",
-  "size": [256, 256],
-  "model": "Kvasir-Seg"
-}
-```
-
-Available model values: `Kvasir-Seg`, `BKAI-IGH`
-
----
-
-## Local Development
-
-```bash
-# Frontend
-npm install
-npm run dev
-
-# Backend (separate terminal)
-cd ../Polyp_Detection_hf
-uvicorn main:app --host 0.0.0.0 --port 7860
-```
-
----
-
-## License
-
-Source code is free for research and education use only. Any commercial use requires formal permission from the first author.
-
-## Contact
+## 7. Contact
+Please contact nikhilroxtomar@gmail.com for any further questions.
 
 **Harshith Reddy Nalla**
 - Email: harshithreddynalla01@gmail.com
 - Portfolio: https://harshithreddy01.github.io/My-Web/
-
-**Debesh Jha**
-- Portfolio: https://debeshjha.com
