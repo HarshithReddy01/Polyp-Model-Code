@@ -11,6 +11,8 @@ on:
       - "package-lock.json"
       - "vite.config.ts"
       - "tsconfig.json"
+      - "tailwind.config.js"
+      - "postcss.config.js"
 
 jobs:
   build-and-deploy:
