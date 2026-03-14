@@ -1,10 +1,20 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import "./index.css";
-import App from "./App";
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { HashRouter as Router, Routes, Route } from 'react-router-dom'
+import HomePage from './components/HomePage'
+import UploadDemo from './components/UploadDemo'
+import './index.css'
+import { ThemeProvider } from './theme/ThemeContext'
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/demo" element={<UploadDemo />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
+  </React.StrictMode>,
+)

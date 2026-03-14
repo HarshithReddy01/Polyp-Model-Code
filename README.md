@@ -1,63 +1,117 @@
-# Polyp Detection
+# PolypVision AI: Real-Time Deep Dilated Segmentation for Colonoscopy
 
-**Live app:** [Frontend](https://harshithreddy01.github.io/Polyp-Model-Code/)  
-**API:** [Hugging Face Space](https://huggingface.co/spaces/HarshithReddy01/Polyp_Detection)
+**Live Demo:** https://harshithreddy01.github.io/Polyp-Model-Code/
+**API:** https://huggingface.co/spaces/HarshithReddy01/Polyp_Detection
+
+**Technical Lead:** [Debesh Jha](https://debeshjha.com)
+**AI/ML Engineer:** [Harshith Reddy Nalla](https://harshithreddy01.github.io/My-Web/)
 
 ---
 
-## DilatedSegNet: A Deep Dilated Segmentation Network for Polyp Segmentation
+## Overview
 
-### Abstract
+PolypVision AI is a deep learning system for automated polyp segmentation in colonoscopy footage. It uses a DilatedSegNet architecture built on a ResNet50 encoder with multi-scale Dilated Convolution Pooling (DCP) blocks to produce pixel-accurate segmentation masks in real time at 33.68 FPS on an NVIDIA RTX 3090. Colorectal cancer is the second leading cause of cancer-related death worldwide — excision of polyps during colonoscopy reduces mortality, and this system enables real-time computer-aided detection to support that process.
 
-Colorectal cancer (CRC) is the second leading cause of cancer-related death worldwide. Excision of polyps during colonoscopy helps reduce mortality and morbidity for CRC. Powered by deep learning, computer-aided diagnosis (CAD) systems can detect regions in the colon overlooked by physicians during colonoscopy. Lacking high accuracy and real-time speed are the essential obstacles to be overcome for successful clinical integration of such systems. While literature is focused on improving accuracy, the speed parameter is often ignored. Toward this critical need, we developed a novel real-time deep learning-based architecture, **DilatedSegNet**, to perform polyp segmentation on the fly. DilatedSegNet is an encoder-decoder network that uses pre-trained ResNet50 as the encoder from which we extract four levels of feature maps. Each of these feature maps is passed through a dilated convolution pooling (DCP) block. The outputs from the DCP blocks are concatenated and passed through a series of four decoder blocks that predict the segmentation mask. The method achieves a real-time operation speed of **33.68 FPS** with an average **Dice coefficient of 0.90** and **mIoU of 0.83**. Results on the publicly available Kvasir-SEG and BKAI-IGH datasets suggest that DilatedSegNet can give real-time feedback while retaining a high dice coefficient, indicating high potential for use in real clinical settings.
+## What It Does
 
-### Architecture
+Given a colonoscopy frame, the model outputs a binary segmentation mask highlighting polyp regions. The frontend displays three views: the original frame, the binary mask, and a red-highlighted overlay for spatial reference. The backend is a FastAPI service deployed on Hugging Face Spaces, accepting a JPEG or PNG image and returning a base64-encoded PNG mask via a single POST request.
 
-Encoder-decoder with ResNet50 encoder, four levels of feature maps, DCP (dilated convolution pooling) blocks, and four decoder blocks with channel and spatial attention. Two model variants: **Kvasir-SEG** and **BKAI-IGH**.
+## Key Features
 
-![Architecture](images/architecture.jpg)
+- ResNet50 encoder with ImageNet-pretrained weights
+- DCP (Dilated Convolution Pooling) blocks at dilation rates 1, 3, 6, and 9 in parallel
+- Channel and spatial attention (CBAM-style) in every decoder block
+- 33.68 FPS inference on NVIDIA RTX 3090 — no TensorRT optimization needed
+- Dual-dataset support: Kvasir-SEG and BKAI-IGH with separate checkpoints
+- REST API via FastAPI, deployed on Hugging Face Spaces
+- React + TypeScript frontend with drag-and-drop upload and canvas overlay
 
-### Implementation
+---
 
-- **Framework:** PyTorch (1.9.0+), implemented with a single GeForce RTX 3090 GPU (24 GB).
-- **Datasets:** [Kvasir-SEG](https://datasets.simula.no/downloads/kvasir-seg.zip), [BKAI-IGH NeoPolyp](https://www.kaggle.com/competitions/bkai-igh-neopolyp/data). Kvasir-SEG split 880/120; BKAI 80:10:10 train/val/test.
-- **Weight files (for local run):** [Kvasir-SEG](https://drive.google.com/file/d/1diYckKDMqDWSDD6O5Jm6InCxWEkU0GJC/view?usp=sharing), [BKAI-IGH](https://drive.google.com/file/d/1ojGaQThD56mRhGQaVoJVpAw0oVwSzX8N/view?usp=sharing).
+## Model Performance
 
-### Results (training)
+| Metric     | Kvasir-SEG | BKAI-IGH  |
+|------------|------------|-----------|
+| Dice Score | 0.90       | 0.88      |
+| mIoU       | 0.83       | 0.81      |
+| Inference  | 33.68 FPS  | 33.68 FPS |
 
-- **Metrics:** Dice **0.90**, mIoU **0.83**, ~33.68 FPS on GPU.
-- Qualitative results and heatmaps show explanation for polyp location, improving trustworthiness of the method.
+### Technical Highlights
 
-**Quantitative results (same dataset):**
+- Implemented and benchmarked on NVIDIA RTX 3090 (24 GB VRAM)
+- DCP blocks fuse four parallel dilated convolution outputs with a 1x1 conv into a single feature map
+- Each decoder block upsamples 2x, concatenates encoder skip connections, then applies CBAM attention
+- Input resolution fixed at 256x256; DiceBCE loss, Adam optimizer, lr 1e-4, early stopping patience 50
+- Kvasir-SEG split: 880 train / 120 test; BKAI-IGH split: 80/10/10 train/val/test
 
-![Result 1](images/result-1.png)
+---
 
-**Quantitative results (different dataset):**
+## Models
 
-![Result 2](images/result-2.png)
+**Kvasir-SEG**
+General-purpose model trained on 1,000 annotated colonoscopy images covering a wide variety of polyp shapes, sizes, and textures. Use this as your default for standard colonoscopy footage.
 
-**Qualitative results:**
+**BKAI-IGH**
+Clinically focused model trained on a dataset distinguishing neoplastic and non-neoplastic polyp categories. Recommended when finer discrimination between polyp types is needed.
 
-![Qualitative](images/qualitative.jpg)
+Weight files for local use:
+- [Kvasir-SEG weights](https://drive.google.com/file/d/1diYckKDMqDWSDD6O5Jm6InCxWEkU0GJC/view?usp=sharing)
+- [BKAI-IGH weights](https://drive.google.com/file/d/1ojGaQThD56mRhGQaVoJVpAw0oVwSzX8N/view?usp=sharing)
 
-### Repo structure
+---
 
-- **Frontend:** React app (this repo root) — upload colonoscopy image, choose model (Kvasir-SEG or BKAI-IGH), view segmentation mask and overlay.
-- **Backend:** FastAPI + PyTorch in `/backend` (no weights in repo; see [backend README](backend/README.md) for local run or use the Hugging Face API above).
+## Quick Start
 
-### License
+1. **Upload Image** — Drop or select a colonoscopy JPEG / PNG frame
+2. **Select Model** — Choose Kvasir-SEG for general use or BKAI-IGH for clinical differentiation
+3. **Run Inference** — DilatedSegNet processes the image via the Hugging Face API
+4. **View Overlay** — Inspect the original frame, binary mask, and red-highlighted overlay
 
-Source code is free for research and education use only. Any commercial use should receive formal permission from the first author.
+---
 
-### Citation
+## API Usage
 
-Updated soon.
+```bash
+curl -X POST "https://harshithreddy01-polyp-detection.hf.space/predict?model=Kvasir-Seg" \
+  -F "file=@colonoscopy_image.jpg"
+```
 
-### Contact
+Response:
+```json
+{
+  "mask": "<base64-encoded PNG>",
+  "size": [256, 256],
+  "model": "Kvasir-Seg"
+}
+```
 
-**Harshith Reddy Nalla**  
-- Email: harshithreddynalla01@gmail.com  
-- Portfolio: [harshithreddy01.github.io/My-Web](https://harshithreddy01.github.io/My-Web/)
+Available model values: `Kvasir-Seg`, `BKAI-IGH`
 
-**Debesh Jha**  
-- Portfolio: [debeshjha.com](https://debeshjha.com)
+---
+
+## Local Development
+
+```bash
+# Frontend
+npm install
+npm run dev
+
+# Backend (separate terminal)
+cd ../Polyp_Detection_hf
+uvicorn main:app --host 0.0.0.0 --port 7860
+```
+
+---
+
+## License
+
+Source code is free for research and education use only. Any commercial use requires formal permission from the first author.
+
+## Contact
+
+**Harshith Reddy Nalla**
+- Email: harshithreddynalla01@gmail.com
+- Portfolio: https://harshithreddy01.github.io/My-Web/
+
+**Debesh Jha**
+- Portfolio: https://debeshjha.com
